@@ -196,11 +196,23 @@ fn config_ui_system(
         ui.group(|ui| {
             ui.heading("Momentum");
             let ball_momentum = config.ball_mass * ball_velocity.linvel.x;
-            ui.label(format!("ball momentum: {:.2}", ball_momentum));
+            ui.label(format!("ball: {:.2}", ball_momentum));
             let block_momentum = config.block_mass * block_velocity.linvel.x;
-            ui.label(format!("block momentum: {:.2}", block_momentum));
-            ui.separator();
+            ui.label(format!("block: {:.2}", block_momentum));
             ui.label(format!("total: {:.2}", ball_momentum + block_momentum));
+        });
+        ui.group(|ui| {
+            ui.heading("Angular Momentum");
+            let ball_angular_momentum = (config.block_height * config.ball_starting_y)
+                * config.ball_mass
+                * ball_velocity.linvel.x;
+            ui.label(format!("ball: {:.2}", ball_angular_momentum));
+            let block_angular_momentum = config.moment_of_inertia() * block_velocity.angvel.abs();
+            ui.label(format!("block: {:.2}", block_angular_momentum));
+            ui.label(format!(
+                "total: {:.2}",
+                ball_angular_momentum + block_angular_momentum
+            ));
         });
         ui.group(|ui| {
             ui.heading("Energy");
@@ -214,7 +226,6 @@ fn config_ui_system(
             let block_angular_energy =
                 (config.moment_of_inertia() / 2.0) * block_velocity.angvel.powi(2);
             ui.label(format!("block angular energy: {:.2}", block_angular_energy));
-            ui.separator();
             ui.label(format!(
                 "total: {:.2}",
                 ball_linear_energy + block_linear_energy + block_angular_energy
