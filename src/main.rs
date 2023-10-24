@@ -35,7 +35,7 @@ struct Ball;
 #[derive(Component)]
 struct Block;
 
-fn setup(mut commands: Commands, config: Res<Config>) {
+fn setup(mut commands: Commands, config: ResMut<Config>) {
     commands.spawn((Camera2dBundle {
         camera: Camera::default(),
         transform: Transform::from_xyz(0.0, 0.0, 10.0)
@@ -43,14 +43,14 @@ fn setup(mut commands: Commands, config: Res<Config>) {
         ..default()
     },));
 
-    spawn_ball_and_block(commands, config);
+    spawn_ball_and_block(&mut commands, &config);
 }
 
-fn spawn_ball_and_block(mut commands: Commands, config: Res<Config>) {
+fn spawn_ball_and_block(commands: &mut Commands, config: &ResMut<Config>) {
     commands.spawn((
         TransformBundle::from(Transform::from_xyz(
             config.ball_starting_x,
-            config.block_height,
+            config.block_height * config.ball_starting_y,
             0.0,
         )),
         RigidBody::Dynamic,
@@ -88,9 +88,7 @@ fn spawn_ball_and_block(mut commands: Commands, config: Res<Config>) {
         ColliderMassProperties::MassProperties(MassProperties {
             local_center_of_mass: Vec2::ZERO,
             mass: config.block_mass,
-            principal_inertia: (1.0 / 12.0)
-                * (config.block_mass)
-                * (config.block_height * 2.0).powi(2),
+            principal_inertia: config.moment_of_inertia(),
         }),
         Block,
     ));
@@ -102,6 +100,7 @@ struct Config {
     ball_speed: f32,
     ball_radius: f32,
     ball_starting_x: f32,
+    ball_starting_y: f32,
     ball_mass: f32,
     elasticity: f32,
     block_height: f32,
@@ -109,12 +108,19 @@ struct Config {
     block_mass: f32,
 }
 
+impl Config {
+    fn moment_of_inertia(&self) -> f32 {
+        (1.0 / 12.0) * (self.block_mass) * (self.block_height * 2.0).powi(2)
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
             ball_speed: 50.0,
             ball_radius: 1.0,
-            ball_starting_x: -100.0,
+            ball_starting_x: -50.0,
+            ball_starting_y: 1.0,
             ball_mass: 1.0,
             elasticity: 1.0,
             block_height: 150.0,
@@ -127,26 +133,92 @@ impl Default for Config {
 fn config_ui_system(
     mut commands: Commands,
     mut contexts: EguiContexts,
-    mut ball: Query<Entity, With<Ball>>,
-    mut block: Query<Entity, (With<Block>, Without<Ball>)>,
+    mut ball: Query<(Entity, &Velocity), With<Ball>>,
+    mut block: Query<(Entity, &Velocity), (With<Block>, Without<Ball>)>,
     mut config: ResMut<Config>,
 ) {
+    let (ball_entity, ball_velocity) = ball.single_mut();
+    let (block_entity, block_velocity) = block.single_mut();
     bevy_inspector_egui::egui::Window::new("Settings").show(contexts.ctx_mut(), |ui| {
-        ui.add(Slider::new(&mut config.ball_speed, 10.0..=200.0).text("ball speed"));
-        ui.add(Slider::new(&mut config.ball_radius, 1.0..=20.0).text("ball radius"));
-        ui.add(Slider::new(&mut config.ball_starting_x, -200.0..=-50.0).text("ball starting x"));
-        ui.add(Slider::new(&mut config.ball_mass, 0.1..=50.0).text("ball mass"));
-        ui.add(Slider::new(&mut config.elasticity, 0.0..=1.0).text("elasticity"));
-        ui.add(Slider::new(&mut config.block_height, 10.0..=300.0).text("block height"));
-        ui.add(Slider::new(&mut config.block_width, 0.1..=10.0).text("block width"));
-        ui.add(Slider::new(&mut config.block_mass, 0.1..=50.0).text("block mass"));
-        if ui.button("Reset").clicked() {
-            let ball = ball.single_mut();
-            commands.entity(ball).despawn();
-            let block = block.single_mut();
-            commands.entity(block).despawn();
-
-            spawn_ball_and_block(commands, config.into());
+        if ui
+            .add(Slider::new(&mut config.ball_speed, 10.0..=200.0).text("ball speed"))
+            .union(ui.add(Slider::new(&mut config.ball_radius, 1.0..=20.0).text("ball radius")))
+            .union(ui.add(
+                Slider::new(&mut config.ball_starting_x, -200.0..=-10.0).text("ball starting x"),
+            ))
+            .union(
+                ui.add(Slider::new(&mut config.ball_starting_y, 0.0..=1.0).text("ball starting y")),
+            )
+            .union(ui.add(Slider::new(&mut config.ball_mass, 0.1..=50.0).text("ball mass")))
+            .union(ui.add(Slider::new(&mut config.elasticity, 0.0..=1.0).text("elasticity")))
+            .union(ui.add(Slider::new(&mut config.block_height, 10.0..=300.0).text("block height")))
+            .union(ui.add(Slider::new(&mut config.block_width, 0.1..=10.0).text("block width")))
+            .union(ui.add(Slider::new(&mut config.block_mass, 0.1..=50.0).text("block mass")))
+            .changed
+        {
+            commands.entity(ball_entity).despawn();
+            commands.entity(block_entity).despawn();
+            spawn_ball_and_block(&mut commands, &config);
         }
+        if ui.button("Restart Simulation").clicked() {
+            commands.entity(ball_entity).despawn();
+            commands.entity(block_entity).despawn();
+            spawn_ball_and_block(&mut commands, &config);
+        }
+        if ui.button("Reset Settings").clicked() {
+            *config = Config::default();
+            commands.entity(ball_entity).despawn();
+            commands.entity(block_entity).despawn();
+            spawn_ball_and_block(&mut commands, &config);
+        }
+    });
+
+    bevy_inspector_egui::egui::Window::new("Stats").show(contexts.ctx_mut(), |ui| {
+        ui.group(|ui| {
+            ui.heading("Velocity");
+            ui.label(format!(
+                "ball linear velocity: {:.2}",
+                ball_velocity.linvel.x
+            ));
+            ui.label(format!(
+                "ball angular velocity: {:.2}",
+                ball_velocity.angvel
+            ));
+            ui.label(format!(
+                "block linear velocity: {:.2}",
+                block_velocity.linvel.x
+            ));
+            ui.label(format!(
+                "block angular velocity: {:.2}",
+                block_velocity.angvel
+            ));
+        });
+        ui.group(|ui| {
+            ui.heading("Momentum");
+            let ball_momentum = config.ball_mass * ball_velocity.linvel.x;
+            ui.label(format!("ball momentum: {:.2}", ball_momentum));
+            let block_momentum = config.block_mass * block_velocity.linvel.x;
+            ui.label(format!("block momentum: {:.2}", block_momentum));
+            ui.separator();
+            ui.label(format!("total: {:.2}", ball_momentum + block_momentum));
+        });
+        ui.group(|ui| {
+            ui.heading("Energy");
+            let ball_linear_energy = (config.ball_mass / 2.0) * ball_velocity.linvel.x.powi(2);
+            ui.label(format!("ball linear energy: {:.2}", ball_linear_energy));
+            let block_linear_energy = (config.block_mass / 2.0) * block_velocity.linvel.x.powi(2);
+            ui.label(format!(
+                "block linear energy: {:.2}",
+                (config.block_mass / 2.0) * block_velocity.linvel.x.powi(2)
+            ));
+            let block_angular_energy =
+                (config.moment_of_inertia() / 2.0) * block_velocity.angvel.powi(2);
+            ui.label(format!("block angular energy: {:.2}", block_angular_energy));
+            ui.separator();
+            ui.label(format!(
+                "total: {:.2}",
+                ball_linear_energy + block_linear_energy + block_angular_energy
+            ));
+        });
     });
 }
