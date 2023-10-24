@@ -10,11 +10,6 @@ use bevy_rapier2d::prelude::*;
 
 fn main() {
     App::new()
-        .insert_resource(ClearColor(Color::rgb(
-            0xF9 as f32 / 255.0,
-            0xF9 as f32 / 255.0,
-            0xFF as f32 / 255.0,
-        )))
         .add_plugins((
             DefaultPlugins,
             RapierPhysicsPlugin::<NoUserData>::default(),
@@ -25,7 +20,6 @@ fn main() {
             FrameTimeDiagnosticsPlugin::default(),
             WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
         ))
-        .insert_resource(ClearColor(Color::rgb(0.7, 0.7, 0.7)))
         .insert_resource(Config::default())
         .add_systems(Startup, setup)
         .add_systems(Update, (config_ui_system, keyboard_events))
@@ -179,25 +173,13 @@ fn config_ui_system(
     bevy_inspector_egui::egui::Window::new("Stats").show(contexts.ctx_mut(), |ui| {
         ui.group(|ui| {
             ui.heading("Velocity");
-            ui.label(format!(
-                "ball linear velocity: {:.2}",
-                ball_velocity.linvel.x
-            ));
-            ui.label(format!(
-                "ball angular velocity: {:.2}",
-                ball_velocity.angvel
-            ));
-            ui.label(format!(
-                "block linear velocity: {:.2}",
-                block_velocity.linvel.x
-            ));
-            ui.label(format!(
-                "block angular velocity: {:.2}",
-                block_velocity.angvel
-            ));
+            ui.label(format!("ball linear: {:.2}", ball_velocity.linvel.x));
+            ui.label(format!("ball angular: {:.2}", ball_velocity.angvel));
+            ui.label(format!("block linear: {:.2}", block_velocity.linvel.x));
+            ui.label(format!("block angular: {:.2}", block_velocity.angvel));
         });
         ui.group(|ui| {
-            ui.heading("Momentum");
+            ui.heading("Linear Momentum");
             let ball_momentum = config.ball_mass * ball_velocity.linvel.x;
             ui.label(format!("ball: {:.2}", ball_momentum));
             let block_momentum = config.block_mass * block_velocity.linvel.x;
@@ -220,15 +202,15 @@ fn config_ui_system(
         ui.group(|ui| {
             ui.heading("Energy");
             let ball_linear_energy = (config.ball_mass / 2.0) * ball_velocity.linvel.x.powi(2);
-            ui.label(format!("ball linear energy: {:.2}", ball_linear_energy));
+            ui.label(format!("ball linear: {:.2}", ball_linear_energy));
             let block_linear_energy = (config.block_mass / 2.0) * block_velocity.linvel.x.powi(2);
             ui.label(format!(
-                "block linear energy: {:.2}",
+                "block linear: {:.2}",
                 (config.block_mass / 2.0) * block_velocity.linvel.x.powi(2)
             ));
             let block_angular_energy =
                 (config.moment_of_inertia() / 2.0) * block_velocity.angvel.powi(2);
-            ui.label(format!("block angular energy: {:.2}", block_angular_energy));
+            ui.label(format!("block angular: {:.2}", block_angular_energy));
             ui.label(format!(
                 "total: {:.2}",
                 ball_linear_energy + block_linear_energy + block_angular_energy
