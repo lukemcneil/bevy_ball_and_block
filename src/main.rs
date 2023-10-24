@@ -52,7 +52,7 @@ fn spawn_ball_and_block(commands: &mut Commands, config: &ResMut<Config>) {
         )),
         RigidBody::Dynamic,
         Collider::ball(config.ball_radius),
-        Friction::coefficient(0.0),
+        Friction::coefficient(config.friction),
         GravityScale(0.0),
         Name::from("Ball"),
         Velocity {
@@ -74,7 +74,7 @@ fn spawn_ball_and_block(commands: &mut Commands, config: &ResMut<Config>) {
         TransformBundle::from(Transform::from_xyz(0.0, 0.0, 0.0)),
         RigidBody::Dynamic,
         Collider::cuboid(config.block_width, config.block_height),
-        Friction::coefficient(0.0),
+        Friction::coefficient(config.friction),
         GravityScale(0.0),
         Name::from("Block"),
         Velocity::default(),
@@ -99,10 +99,11 @@ struct Config {
     ball_starting_x: f32,
     ball_starting_y: f32,
     ball_mass: f32,
-    elasticity: f32,
     block_height: f32,
     block_width: f32,
     block_mass: f32,
+    elasticity: f32,
+    friction: f32,
 }
 
 impl Config {
@@ -119,10 +120,11 @@ impl Default for Config {
             ball_starting_x: -100.0,
             ball_starting_y: 1.0,
             ball_mass: 1.0,
-            elasticity: 1.0,
             block_height: 100.0,
             block_width: 1.0,
             block_mass: 1.0,
+            elasticity: 1.0,
+            friction: 0.0,
         }
     }
 }
@@ -147,10 +149,11 @@ fn config_ui_system(
                 ui.add(Slider::new(&mut config.ball_starting_y, 0.0..=1.0).text("ball starting y")),
             )
             .union(ui.add(Slider::new(&mut config.ball_mass, 0.1..=50.0).text("ball mass")))
-            .union(ui.add(Slider::new(&mut config.elasticity, 0.0..=1.0).text("elasticity")))
             .union(ui.add(Slider::new(&mut config.block_height, 10.0..=300.0).text("block height")))
             .union(ui.add(Slider::new(&mut config.block_width, 0.1..=10.0).text("block width")))
             .union(ui.add(Slider::new(&mut config.block_mass, 0.1..=50.0).text("block mass")))
+            .union(ui.add(Slider::new(&mut config.elasticity, 0.0..=1.0).text("elasticity")))
+            .union(ui.add(Slider::new(&mut config.friction, 0.0..=1.0).text("friction")))
             .changed
         {
             commands.entity(ball_entity).despawn();
