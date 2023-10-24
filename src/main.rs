@@ -1,5 +1,7 @@
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::input::common_conditions::input_toggle_active;
+use bevy::input::keyboard::KeyboardInput;
+use bevy::input::ButtonState;
 use bevy::prelude::*;
 use bevy_inspector_egui::bevy_egui::EguiContexts;
 use bevy_inspector_egui::egui::Slider;
@@ -25,7 +27,7 @@ fn main() {
         ))
         .insert_resource(Config::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, config_ui_system)
+        .add_systems(Update, (config_ui_system, keyboard_events))
         .run();
 }
 
@@ -117,13 +119,13 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            ball_speed: 50.0,
+            ball_speed: 100.0,
             ball_radius: 1.0,
-            ball_starting_x: -50.0,
+            ball_starting_x: -100.0,
             ball_starting_y: 1.0,
             ball_mass: 1.0,
             elasticity: 1.0,
-            block_height: 150.0,
+            block_height: 100.0,
             block_width: 1.0,
             block_mass: 1.0,
         }
@@ -160,7 +162,7 @@ fn config_ui_system(
             commands.entity(block_entity).despawn();
             spawn_ball_and_block(&mut commands, &config);
         }
-        if ui.button("Restart Simulation").clicked() {
+        if ui.button("Restart Simulation (press space)").clicked() {
             commands.entity(ball_entity).despawn();
             commands.entity(block_entity).despawn();
             spawn_ball_and_block(&mut commands, &config);
@@ -232,4 +234,24 @@ fn config_ui_system(
             ));
         });
     });
+}
+
+fn keyboard_events(
+    mut key_evr: EventReader<KeyboardInput>,
+    mut commands: Commands,
+    mut ball: Query<Entity, With<Ball>>,
+    mut block: Query<Entity, (With<Block>, Without<Ball>)>,
+    config: ResMut<Config>,
+) {
+    let ball_entity = ball.single_mut();
+    let block_entity = block.single_mut();
+    for ev in key_evr.iter() {
+        if let ButtonState::Pressed = ev.state {
+            if let Some(KeyCode::Space) = ev.key_code {
+                commands.entity(ball_entity).despawn();
+                commands.entity(block_entity).despawn();
+                spawn_ball_and_block(&mut commands, &config);
+            }
+        }
+    }
 }
