@@ -121,7 +121,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             ball_speed: 100.0,
-            ball_radius: 1.0,
+            ball_radius: 3.0,
             ball_starting_x: -100.0,
             ball_starting_y: 1.0,
             ball_mass: 1.0,
