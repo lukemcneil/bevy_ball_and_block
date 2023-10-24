@@ -22,7 +22,7 @@ fn main() {
         ))
         .insert_resource(Config::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, (config_ui_system, keyboard_events))
+        .add_systems(Update, (config_ui_system, keyboard_events, draw_axis))
         .run();
 }
 
@@ -240,4 +240,8 @@ fn keyboard_events(
             }
         }
     }
+}
+
+fn draw_axis(mut gizmos: Gizmos) {
+    gizmos.line_2d(1000.0 * Vec2::NEG_X, 1000.0 * Vec2::X, Color::BLACK);
 }
