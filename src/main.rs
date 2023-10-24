@@ -25,6 +25,7 @@ fn main() {
             FrameTimeDiagnosticsPlugin::default(),
             WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
         ))
+        .insert_resource(ClearColor(Color::rgb(0.7, 0.7, 0.7)))
         .insert_resource(Config::default())
         .add_systems(Startup, setup)
         .add_systems(Update, (config_ui_system, keyboard_events))
