@@ -9,7 +9,7 @@ edition = "2021"
 bevy = "0.11.3"
 bevy-inspector-egui = "0.19"
 rand = "0.8.5"
-bevy_rapier3d = "0.22.0"
+bevy_rapier2d = "0.22.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
@@ -20,5 +20,5 @@ opt-level = 1
 opt-level = 3
 
 # Add this to your Cargo.toml
-[profile.dev.package.bevy_rapier3d]
+[profile.dev.package.bevy_rapier2d]
 opt-level = 3
